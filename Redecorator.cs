@@ -14,7 +14,7 @@ namespace DVDecorator
     {
         public static UnityModManager.ModEntry ModEntry = null;
 
-        public static readonly List<RepaintGroup> ObjectRepaints = new List<RepaintGroup>();
+        public static readonly List<RepaintGroup> RepaintGroups = new List<RepaintGroup>();
         public static readonly HashSet<string> TargetNames = new HashSet<string>();
 
         public static List<GameObject> TargetCache = null;
@@ -45,19 +45,26 @@ namespace DVDecorator
 
             if( !texDir.Exists ) return;
 
-            foreach( var subDir in texDir.GetDirectories() )
+            // iterate each texture pack folder
+            foreach( var packDir in texDir.GetDirectories() )
             {
-                var newGroup = new RepaintGroup(subDir.Name);
-                ModEntry.Logger.Log($"Found scheme for object {subDir.Name}");
+                ModEntry.Logger.Log($"Loading texture pack {packDir.Name}");
 
-                foreach( var image in subDir.GetFiles("*.png") )
+                // in each pack, iterate each object group
+                foreach( var objectDir in packDir.GetDirectories() )
                 {
-                    newGroup.LoadTexture(image.FullName);
-                    ModEntry.Logger.Log($"Added texture {image.Name} to object {subDir.Name}");
-                }
+                    var newGroup = new RepaintGroup(objectDir.Name);
+                    //ModEntry.Logger.Log($"Found scheme for object {subDir.Name}");
 
-                ObjectRepaints.Add(newGroup);
-                TargetNames.Add(newGroup.ObjectName);
+                    foreach( var image in objectDir.GetFiles("*.png") )
+                    {
+                        newGroup.LoadTexture(image.FullName);
+                        //ModEntry.Logger.Log($"Added texture {image.Name} to object {subDir.Name}");
+                    }
+
+                    RepaintGroups.Add(newGroup);
+                    TargetNames.Add(newGroup.ObjectName);
+                }
             }
         }
 
@@ -88,7 +95,7 @@ namespace DVDecorator
             Redecorator.TargetCache = GameObject.FindObjectsOfType<GameObject>()
                 .Where(obj => Redecorator.TargetNames.Contains(obj.name)).ToList();
 
-            foreach( var group in Redecorator.ObjectRepaints )
+            foreach( var group in Redecorator.RepaintGroups )
             {
                 group.AttemptRepaint();
             }

@@ -60,7 +60,7 @@ namespace DVDecorator
 
                     for( int i = 0; i < materials.Length; i++ )
                     {
-                        bool materialChanged = false;
+                        //bool materialChanged = false;
                         string prefix;
                         Texture2D newTex;
 
@@ -70,14 +70,14 @@ namespace DVDecorator
                             var prefix_match = Regex.Match(diffuse.name, @"(.+?)(?:_(?:\d+)?d)");
                             prefix = prefix_match.Groups[1].Value;
 
-                            Redecorator.ModEntry.Logger.Log($"Modifying material, prefix {prefix}");
+                            //Redecorator.ModEntry.Logger.Log($"Modifying material, prefix {prefix}");
 
                             if( TextureList.TryGetValue(diffuse.name, out newTex) )
                             {
                                 materials[i].SetTexture(DIFFUSE_PROP, newTex);
 
                                 texChanged = true;
-                                materialChanged = true;
+                                //materialChanged = true;
                             }
                         }
                         else continue; // if there's no diffuse then this material isn't useful
@@ -90,7 +90,7 @@ namespace DVDecorator
                             materials[i].SetTexture(NORMAL_PROP, newTex);
 
                             texChanged = true;
-                            materialChanged = true;
+                            //materialChanged = true;
                         }
 
                         // specular/AO
@@ -101,7 +101,7 @@ namespace DVDecorator
                             materials[i].SetTexture(SPECULAR_PROP, newTex);
 
                             texChanged = true;
-                            materialChanged = true;
+                            //materialChanged = true;
 
                             materials[i].SetTexture("_OcclusionMap", newTex);
                         }
