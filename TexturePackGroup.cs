@@ -1,77 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace DVDecorator
 {
-    public class ObjectGroup
-    {
-        public string ObjectName;
-        public readonly List<TexturePackGroup> TexturePacks = new List<TexturePackGroup>();
-
-        public ObjectGroup( string objName )
-        {
-            ObjectName = objName;
-        }
-
-        public void LoadTexturePackFiles( DirectoryInfo objDirectory )
-        {
-            var texGroup = new TexturePackGroup(ObjectName);
-
-            foreach( var image in objDirectory.GetFiles("*.png") )
-            {
-                texGroup.LoadTexture(image.FullName);
-            }
-
-            TexturePacks.Add(texGroup);
-        }
-
-        public void AttemptRepaints()
-        {
-            if( TexturePacks.Count == 0 )
-            {
-                Redecorator.ModEntry.Logger.Warning($"Something's wrong - object {ObjectName} has no textures loaded");
-                return;
-            }
-
-            IEnumerable<GameObject> targets = Redecorator.TargetCache.Where(obj => string.Equals(obj.name, ObjectName));
-            
-            bool targetFound = false;
-            TexturePacks.Shuffle();
-            int packIdx = 0;
-
-            foreach( GameObject target in targets )
-            {
-                targetFound = true;
-
-                TexturePacks[packIdx].AttemptRepaint(target);
-
-                packIdx += 1;
-                if( packIdx >= TexturePacks.Count )
-                {
-                    packIdx = 0;
-                }
-            }
-
-            if( !targetFound )
-            {
-                Redecorator.ModEntry.Logger.Log("Failed to find any target object " + ObjectName);
-            }
-        }
-    }
-
     public class TexturePackGroup
     {
         public readonly string ObjectName;
         public readonly string PackName;
         public readonly Dictionary<string, Texture2D> TextureList = new Dictionary<string, Texture2D>();
 
-        public TexturePackGroup( string objName )
+        public TexturePackGroup( string objName, string packName )
         {
             ObjectName = objName;
+            PackName = packName;
+        }
+
+        public TexturePackGroup( string objName, string packName, TexturePackGroup other )
+        {
+            ObjectName = objName;
+            PackName = packName;
+            foreach( var kvp in other.TextureList )
+            {
+                TextureList.Add(kvp.Key, kvp.Value);
+            }
         }
 
         public void LoadTexture( string path )

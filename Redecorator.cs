@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using HarmonyLib;
 using UnityEngine;
 using UnityModManagerNet;
@@ -48,7 +49,8 @@ namespace DVDecorator
             // iterate each texture pack folder
             foreach( var packDir in texDir.GetDirectories() )
             {
-                ModEntry.Logger.Log($"Loading texture pack {packDir.Name}");
+                string packName = packDir.Name;
+                ModEntry.Logger.Log($"Loading texture pack {packName}");
 
                 // we'll swap the object and texture pack level so it goes:
                 // - Object 1
@@ -69,9 +71,71 @@ namespace DVDecorator
                         ObjectsToTexture.Add(objectName, objectTypeGroup);
                     }
 
-                    objectTypeGroup.LoadTexturePackFiles(objectDir);
+                    objectTypeGroup.LoadTexturePackFiles(objectDir, packName);
                     TargetNames.Add(objectName);
                 }
+
+                // check for aliases file
+                string aliasFile = Path.Combine(packDir.FullName, "aliases.txt");
+                if( File.Exists(aliasFile) )
+                {
+                    ProcessAliases(aliasFile, packDir.Name);
+                }
+            }
+        }
+
+        private static readonly Regex AliasRegex = new Regex(@"([^=]+)=([^=]+)", RegexOptions.Compiled);
+        public static void ProcessAliases( string aliasFilePath, string packName )
+        {
+            string[] aliases = File.ReadAllLines(aliasFilePath);
+            int lineNum = 1;
+
+            foreach( string line in aliases )
+            {
+                if( string.IsNullOrWhiteSpace(line) ) continue;
+
+                var match = AliasRegex.Match(line);
+                if( match.Success )
+                {
+                    string aliasedName = match.Groups[1].Value;
+                    string sourceName = match.Groups[2].Value;
+
+                    if( ObjectsToTexture.TryGetValue(sourceName, out ObjectGroup sourceGroup) )
+                    {
+                        TexturePackGroup sourceTextures = sourceGroup.TexturePacks.Find(tpg => tpg.PackName.Equals(packName));
+                        if( sourceTextures != null )
+                        {
+                            // found source
+                            if( !ObjectsToTexture.TryGetValue(aliasedName, out ObjectGroup aliasedGroup) )
+                            {
+                                // create new group if it doesn't exist yet
+                                aliasedGroup = new ObjectGroup(aliasedName);
+                                ObjectsToTexture.Add(aliasedName, aliasedGroup);
+                                TargetNames.Add(aliasedName);
+                            }
+
+                            // copy the texture references from the source to the aliased object
+                            var newGroup = new TexturePackGroup(aliasedName, packName, sourceTextures);
+                            aliasedGroup.TexturePacks.Add(newGroup);
+
+                            ModEntry.Logger.Log($"Object {aliasedName} will use same textures as {sourceName}");
+                        }
+                        else
+                        {
+                            ModEntry.Logger.Error($"Pack does not contain textures for source object {sourceName}, line {lineNum} of alias file {aliasFilePath}");
+                        }
+                    }
+                    else
+                    {
+                        ModEntry.Logger.Error($"Source object {sourceName} not found on line {lineNum} of alias file {aliasFilePath}");
+                    }
+                }
+                else
+                {
+                    ModEntry.Logger.Error($"Invalid line {lineNum} of alias file {aliasFilePath}");
+                }
+
+                lineNum++;
             }
         }
 
