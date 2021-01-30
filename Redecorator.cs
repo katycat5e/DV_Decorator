@@ -40,11 +40,29 @@ namespace DVDecorator
             return true;
         }
 
+        // Folder structure:
+
+        //  Textures
+        //      |- <Pack Directory>
+        //          |- <Parent Object 1>
+        //          |   |- <Child Object A>
+        //          |   |   |- Texture_1.png
+        //          |   |   |- Texture_2.png
+        //          |   |-------------------
+        //          |   |
+        //          |   |- <Child Object B>
+        //          |   |   |- Texture_3.png
+        //          |-----------------------
+        //          |
+        //          |- <Parent Object 2> ...
+
         static void LoadTextures()
         {
             var texDir = new DirectoryInfo(Path.Combine(ModEntry.Path, "Textures"));
 
             if( !texDir.Exists ) return;
+
+            // we need to swap the texture pack and root object level
 
             // iterate each texture pack folder
             foreach( var packDir in texDir.GetDirectories() )
@@ -52,27 +70,21 @@ namespace DVDecorator
                 string packName = packDir.Name;
                 ModEntry.Logger.Log($"Loading texture pack {packName}");
 
-                // we'll swap the object and texture pack level so it goes:
-                // - Object 1
-                //     |- Pack A files
-                //     |- Pack B files
-                // - Object 2
-                //     |- Pack A files
-                //     |- Pack C files
-
                 // in each pack, iterate each object group
-                foreach( var objectDir in packDir.GetDirectories() )
+                foreach( var rootObjectDir in packDir.GetDirectories() )
                 {
-                    string objectName = objectDir.Name;
-                    if( !ObjectsToTexture.TryGetValue(objectName, out ObjectGroup objectTypeGroup) )
+                    string rootObjectName = rootObjectDir.Name;
+                    if( !ObjectsToTexture.TryGetValue(rootObjectName, out ObjectGroup objectTypeGroup) )
                     {
                         // no existing textures for this object, create new group
-                        objectTypeGroup = new ObjectGroup(objectName);
-                        ObjectsToTexture.Add(objectName, objectTypeGroup);
+                        objectTypeGroup = new ObjectGroup(rootObjectName);
+                        ObjectsToTexture.Add(rootObjectName, objectTypeGroup);
                     }
 
-                    objectTypeGroup.LoadTexturePackFiles(objectDir, packName);
-                    TargetNames.Add(objectName);
+                    // now we load the contents of the object directory recursively
+                    objectTypeGroup.LoadTexturePackRoot(rootObjectDir, packName);
+
+                    TargetNames.Add(rootObjectName);
                 }
 
                 // check for aliases file
@@ -102,7 +114,7 @@ namespace DVDecorator
 
                     if( ObjectsToTexture.TryGetValue(sourceName, out ObjectGroup sourceGroup) )
                     {
-                        TexturePackGroup sourceTextures = sourceGroup.TexturePacks.Find(tpg => tpg.PackName.Equals(packName));
+                        TexturePackRoot sourceTextures = sourceGroup.TexturePacks.Find(tpg => tpg.PackName.Equals(packName));
                         if( sourceTextures != null )
                         {
                             // found source
@@ -115,8 +127,8 @@ namespace DVDecorator
                             }
 
                             // copy the texture references from the source to the aliased object
-                            var newGroup = new TexturePackGroup(aliasedName, packName, sourceTextures);
-                            aliasedGroup.TexturePacks.Add(newGroup);
+                            var newGroup = new HeirarchicalTextureSet(aliasedName, sourceTextures.TextureSet);
+                            aliasedGroup.TexturePacks.Add(new TexturePackRoot(packName, newGroup));
 
                             ModEntry.Logger.Log($"Object {aliasedName} will use same textures as {sourceName}");
                         }

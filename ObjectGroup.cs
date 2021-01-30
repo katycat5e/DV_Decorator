@@ -5,26 +5,33 @@ using UnityEngine;
 
 namespace DVDecorator
 {
+    public class TexturePackRoot
+    {
+        public readonly string PackName;
+        public readonly HeirarchicalTextureSet TextureSet;
+
+        public TexturePackRoot( string packName, HeirarchicalTextureSet textureSet )
+        {
+            PackName = packName;
+            TextureSet = textureSet;
+        }
+    }
+
     public class ObjectGroup
     {
         public string ObjectName;
-        public readonly List<TexturePackGroup> TexturePacks = new List<TexturePackGroup>();
+        public readonly List<TexturePackRoot> TexturePacks = new List<TexturePackRoot>();
 
         public ObjectGroup( string objName )
         {
             ObjectName = objName;
         }
 
-        public void LoadTexturePackFiles( DirectoryInfo objDirectory, string packName )
+        public void LoadTexturePackRoot( DirectoryInfo directory, string packName )
         {
-            var texGroup = new TexturePackGroup(ObjectName, packName);
-
-            foreach( var image in objDirectory.GetFiles("*.png") )
-            {
-                texGroup.LoadTexture(image.FullName);
-            }
-
-            TexturePacks.Add(texGroup);
+            var texGroup = new HeirarchicalTextureSet(null);
+            texGroup.LoadFolder(directory);
+            TexturePacks.Add(new TexturePackRoot(packName, texGroup));
         }
 
         public void AttemptRepaints()
@@ -45,7 +52,7 @@ namespace DVDecorator
             {
                 targetFound = true;
 
-                TexturePacks[packIdx].AttemptRepaint(target);
+                TexturePacks[packIdx].TextureSet.AttemptRepaint(target);
 
                 packIdx += 1;
                 if( packIdx >= TexturePacks.Count )

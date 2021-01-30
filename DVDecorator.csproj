@@ -52,7 +52,7 @@
     <Compile Include="ObjectGroup.cs" />
     <Compile Include="Redecorator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TexturePackGroup.cs" />
+    <Compile Include="HeirarchicalTextureSet.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
